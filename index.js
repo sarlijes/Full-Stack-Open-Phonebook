@@ -23,8 +23,19 @@ let persons = [
         "id": 3
     }
 ]
+
+
 app.get('/', (req, res) => {
-    res.send('<h1>Hello World!</h1>')
+    res.send('<h1>Phone Book</h1>')
+})
+
+app.get('/info', (req, res) => {
+    res
+    .set({
+        'Content-Type': 'text/plain;characterEncoding=UTF-8'
+    })
+    .end('Phone book has contact info for ' + persons.length + ' people'
+        + '\n request made on ' + new Date())
 })
 
 app.get('/api/persons', (req, res) => {

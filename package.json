@@ -1,0 +1,19 @@
+{
+  "name": "phonebook",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sarlijes/Full-Stack-Open-Chapter-3-Phonebook.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sarlijes/Full-Stack-Open-Chapter-3-Phonebook/issues"
+  },
+  "homepage": "https://github.com/sarlijes/Full-Stack-Open-Chapter-3-Phonebook#readme"
+}

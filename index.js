@@ -31,15 +31,26 @@ app.get('/', (req, res) => {
 
 app.get('/info', (req, res) => {
     res
-    .set({
-        'Content-Type': 'text/plain;characterEncoding=UTF-8'
-    })
-    .end('Phone book has contact info for ' + persons.length + ' people'
-        + '\n request made on ' + new Date())
+        .set({
+            'Content-Type': 'text/plain;characterEncoding=UTF-8'
+        })
+        .end('Phone book has contact info for ' + persons.length + ' people'
+            + '\n request made on ' + new Date())
 })
 
 app.get('/api/persons', (req, res) => {
     res.json(persons)
+})
+
+app.get('/api/persons/:id', (request, response) => {
+    const id = Number(request.params.id)
+    const person = persons.find(person => person.id === id)
+
+    if (person) {
+        response.json(person)
+    } else {
+        response.status(404).end()
+    }
 })
 
 const PORT = 3001

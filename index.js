@@ -1,3 +1,13 @@
+const morgan = require('morgan')
+const express = require('express')
+const app = express()
+const bodyParser = require('body-parser')
+
+app.use(bodyParser.json())
+app.use(morgan('tiny'))
+app.use(morgan(':method :url :reqBody :status :res[content-length] - :response-time ms'))
+morgan.token('reqBody', (req) => JSON.stringify(req.body))
+
 let persons = [
     {
         "name": "Sven Mislintat",
@@ -13,23 +23,9 @@ let persons = [
         "name": "Dan Abramov",
         "number": "12-43-234345",
         "id": 2
-    },
-    {
-        "name": "Mary Poppendieck",
-        "number": "39-23-6423122",
-        "id": 3
-    },
-    {
-        "name": "Steve",
-        "number": "39-23-6423122",
-        "id": 4
     }
 ]
-const express = require('express')
-const app = express()
 
-const bodyParser = require('body-parser')
-app.use(bodyParser.json())
 
 // Tapahtumankäsittelijäfunktiolla on kaksi parametria. Näistä ensimmäinen eli 
 // request sisältää kaikki HTTP-pyynnön tiedot ja toisen parametrin response:n 
@@ -82,7 +78,6 @@ app.delete('/api/persons/:id', (request, response) => {
 
 const generateId = () => {
     let newId = Math.floor(Math.random() * 1000) + persons.length;
-    console.log(newId)
     return newId
 }
 
@@ -114,14 +109,20 @@ app.post('/api/persons', (request, response) => {
         number: body.number,
         id: generateId()
     }
-    
-// Pyyntöön vastataan response-olion metodilla json, joka lähettää HTTP-pyynnön 
-// vastaukseksi parametrina olevaa Javascript-olioa eli taulukkoa persons vastaavan 
-// JSON-muotoisen merkkijonon.
+
+    // Pyyntöön vastataan response-olion metodilla json, joka lähettää HTTP-pyynnön 
+    // vastaukseksi parametrina olevaa Javascript-olioa eli taulukkoa persons vastaavan 
+    // JSON-muotoisen merkkijonon.
 
     persons = persons.concat(person)
     response.json(person)
 })
+
+const unknownEndpoint = (request, response) => {
+    response.status(404).send({ error: 'unknown endpoint' })
+}
+
+app.use(unknownEndpoint)
 
 const PORT = 3001
 app.listen(PORT, () => {

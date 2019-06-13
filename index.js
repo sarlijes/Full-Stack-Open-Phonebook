@@ -1,6 +1,3 @@
-const express = require('express')
-const app = express()
-
 let persons = [
     {
         "name": "Sven Mislintat",
@@ -21,16 +18,31 @@ let persons = [
         "name": "Mary Poppendieck",
         "number": "39-23-6423122",
         "id": 3
+    },
+    {
+        "name": "Steve",
+        "number": "39-23-6423122",
+        "id": 4
     }
 ]
+const express = require('express')
+const app = express()
 
+const bodyParser = require('body-parser')
+app.use(bodyParser.json())
 
-app.get('/', (req, res) => {
-    res.send('<h1>Phone Book</h1>')
+// Tapahtumankäsittelijäfunktiolla on kaksi parametria. Näistä ensimmäinen eli 
+// request sisältää kaikki HTTP-pyynnön tiedot ja toisen parametrin response:n 
+// avulla määritellään, miten pyyntöön vastataan.
+
+app.get('/', (req, response) => {
+    response.send('<h1>Phone Book</h1>')
 })
+// vastataan pyyntöön 1. Content-Type-headerille arvo text/plain ja asettamalla 
+// palautettavan sivun sisällöksi haluttu merkkijono.
 
-app.get('/info', (req, res) => {
-    res
+app.get('/info', (req, response) => {
+    response
         .set({
             'Content-Type': 'text/plain;characterEncoding=UTF-8'
         })
@@ -38,9 +50,16 @@ app.get('/info', (req, res) => {
             + '\n request made on ' + new Date())
 })
 
-app.get('/api/persons', (req, res) => {
-    res.json(persons)
+// Pyyntöön vastataan response-olion metodilla json, joka lähettää HTTP-pyynnön 
+// vastaukseksi parametrina olevaa Javascript-olioa eli taulukkoa persons vastaavan 
+// JSON-muotoisen merkkijonon. Express asettaa headerin Content-type arvoksi 
+// application/json.
+
+app.get('/api/persons', (req, response) => {
+    response.json(persons)
 })
+
+// Näyttää yksittäisen henkilön, jos se löytyy, muussa tapauksessa 404 eli not found
 
 app.get('/api/persons/:id', (request, response) => {
     const id = Number(request.params.id)
@@ -51,6 +70,57 @@ app.get('/api/persons/:id', (request, response) => {
     } else {
         response.status(404).end()
     }
+})
+
+// poistaa tietyn, vastaa 204 no content
+
+app.delete('/api/persons/:id', (request, response) => {
+    const id = Number(request.params.id)
+    persons = persons.filter(person => person.id !== id)
+    response.status(204).end()
+})
+
+const generateId = () => {
+    let newId = Math.floor(Math.random() * 1000) + persons.length;
+    console.log(newId)
+    return newId
+}
+
+// body-parser ottaa pyynnön mukana olevan JSON-muotoisen datan, muuttaa sen 
+// js-olioksi ja sijoittaa request-olion kenttään body ennen kuin routen 
+// käsittelijää kutsutaan.
+
+app.post('/api/persons', (request, response) => {
+    const body = request.body
+
+    if (!body.name) {
+        return response.status(400).json({
+            error: 'name missing'
+        })
+    }
+    if (!body.number) {
+        return response.status(400).json({
+            error: 'number missing'
+        })
+    }
+    if (persons.find(person => person.name === body.name)) {
+        return response.status(400).json({
+            error: 'name must be unique'
+        })
+    }
+
+    const person = {
+        name: body.name,
+        number: body.number,
+        id: generateId()
+    }
+    
+// Pyyntöön vastataan response-olion metodilla json, joka lähettää HTTP-pyynnön 
+// vastaukseksi parametrina olevaa Javascript-olioa eli taulukkoa persons vastaavan 
+// JSON-muotoisen merkkijonon.
+
+    persons = persons.concat(person)
+    response.json(person)
 })
 
 const PORT = 3001

@@ -1,34 +1,21 @@
+require('dotenv').config()
+
 const morgan = require('morgan')
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
 const cors = require('cors')
-app.use(express.static('build'))
+const Person = require('./models/person')
 
+
+app.use(express.static('build'))
 app.use(bodyParser.json())
 app.use(morgan('tiny'))
 app.use(morgan(':method :url :reqBody :status :res[content-length] - :response-time ms'))
 morgan.token('reqBody', (req) => JSON.stringify(req.body))
 app.use(cors())
 
-
-let persons = [
-    {
-        "name": "Sven Mislintat",
-        "number": "040-123456",
-        "id": 0
-    },
-    {
-        "name": "Ada Lovelace",
-        "number": "39-44-5323523",
-        "id": 1
-    },
-    {
-        "name": "Dan Abramov",
-        "number": "12-43-234345",
-        "id": 2
-    }
-]
+let persons = []
 
 // Tapahtumankäsittelijäfunktiolla on kaksi parametria. Näistä ensimmäinen eli 
 // request sisältää kaikki HTTP-pyynnön tiedot ja toisen parametrin response:n 
@@ -37,6 +24,8 @@ let persons = [
 app.get('/', (req, response) => {
     response.send('<h1>Phone Book</h1>')
 })
+
+
 // vastataan pyyntöön 1. Content-Type-headerille arvo text/plain ja asettamalla 
 // palautettavan sivun sisällöksi haluttu merkkijono.
 
@@ -54,22 +43,42 @@ app.get('/info', (req, response) => {
 // JSON-muotoisen merkkijonon. Express asettaa headerin Content-type arvoksi 
 // application/json.
 
-app.get('/api/persons', (req, response) => {
-    response.json(persons)
-})
+// Vanha versio:
+// app.get('/api/persons', (req, response) => {
+//     response.json(persons)
+// })
+
+// Palautetaan HTTP-pyynnön vastauksena toJSON-metodin avulla siistittyjä oliota:
+
+app.get('/api/persons', (request, response) => {
+    Person.find({}).then(persons => {
+        response.json(persons.map(person => person.toJSON()))
+    });
+});
 
 // Näyttää yksittäisen henkilön, jos se löytyy, muussa tapauksessa 404 eli not found
 
-app.get('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    const person = persons.find(person => person.id === id)
-
-    if (person) {
-        response.json(person)
-    } else {
+  app.get('/api/persons/:id', (request, response) => {
+    Person.findById(request.params.id)
+      .then(person => {
+        response.json(person.toJSON())
+      })
+      .catch(error => {
+        console.log(error);
         response.status(404).end()
-    }
-})
+      })
+  })
+
+// app.get('/api/persons/:id', (request, response) => {
+//     const id = Number(request.params.id)
+//     const person = persons.find(person => person.id === id)
+
+//     if (person) {
+//         response.json(person)
+//     } else {
+//         response.status(404).end()
+//     }
+// })
 
 // poistaa tietyn, vastaa 204 no content
 
@@ -79,10 +88,10 @@ app.delete('/api/persons/:id', (request, response) => {
     response.status(204).end()
 })
 
-const generateId = () => {
-    let newId = Math.floor(Math.random() * 1000) + persons.length;
-    return newId
-}
+// const generateId = () => {
+//     let newId = Math.floor(Math.random() * 1000) + persons.length;
+//     return newId
+// }
 
 // body-parser ottaa pyynnön mukana olevan JSON-muotoisen datan, muuttaa sen 
 // js-olioksi ja sijoittaa request-olion kenttään body ennen kuin routen 
@@ -107,17 +116,18 @@ app.post('/api/persons', (request, response) => {
         })
     }
 
-    const person = {
+    const person = new Person({
         name: body.name,
-        number: body.number,
-        id: generateId()
-    }
+        number: body.number
+    })
 
     // Pyyntöön vastataan response-olion metodilla json, joka lähettää HTTP-pyynnön 
     // vastaukseksi uutta olioa vastaavan JSON-muotoisen merkkijonon.
 
-    persons = persons.concat(person)
-    response.json(person)
+    person.save().then(savedPerson => {
+        response.json(savedPerson.toJSON())
+    })
+
 })
 
 const unknownEndpoint = (request, response) => {
@@ -126,7 +136,7 @@ const unknownEndpoint = (request, response) => {
 
 app.use(unknownEndpoint)
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
+    console.log(`Server running on port ${PORT}`)
 })

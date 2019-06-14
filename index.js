@@ -2,11 +2,15 @@ const morgan = require('morgan')
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
+const cors = require('cors')
+app.use(express.static('build'))
 
 app.use(bodyParser.json())
 app.use(morgan('tiny'))
 app.use(morgan(':method :url :reqBody :status :res[content-length] - :response-time ms'))
 morgan.token('reqBody', (req) => JSON.stringify(req.body))
+app.use(cors())
+
 
 let persons = [
     {
@@ -25,7 +29,6 @@ let persons = [
         "id": 2
     }
 ]
-
 
 // Tapahtumankäsittelijäfunktiolla on kaksi parametria. Näistä ensimmäinen eli 
 // request sisältää kaikki HTTP-pyynnön tiedot ja toisen parametrin response:n 
@@ -124,7 +127,7 @@ const unknownEndpoint = (request, response) => {
 
 app.use(unknownEndpoint)
 
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`)
+  console.log(`Server running on port ${PORT}`)
 })

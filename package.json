@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/sarlijes/Full-Stack-Open-Chapter-3-Phonebook#readme",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.17.1",
     "morgan": "^1.9.1"
   },

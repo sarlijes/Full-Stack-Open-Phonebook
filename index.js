@@ -114,8 +114,7 @@ app.post('/api/persons', (request, response) => {
     }
 
     // Pyyntöön vastataan response-olion metodilla json, joka lähettää HTTP-pyynnön 
-    // vastaukseksi parametrina olevaa Javascript-olioa eli taulukkoa persons vastaavan 
-    // JSON-muotoisen merkkijonon.
+    // vastaukseksi uutta olioa vastaavan JSON-muotoisen merkkijonon.
 
     persons = persons.concat(person)
     response.json(person)

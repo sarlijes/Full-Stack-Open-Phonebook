@@ -7,7 +7,6 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const Person = require('./models/person')
 
-
 app.use(express.static('build'))
 app.use(bodyParser.json())
 app.use(morgan('tiny'))
@@ -25,18 +24,19 @@ app.get('/', (req, response) => {
     response.send('<h1>Phone Book</h1>')
 })
 
-
 // vastataan pyyntöön 1. Content-Type-headerille arvo text/plain ja asettamalla 
 // palautettavan sivun sisällöksi haluttu merkkijono.
 
-app.get('/info', (req, response) => {
-    response
-        .set({
+app.get('/info', (req, res) => {
+    Person.find({}).then(personList => {
+        res.set({
             'Content-Type': 'text/plain;characterEncoding=UTF-8'
         })
-        .end('Phone book has contact info for ' + persons.length + ' people'
-            + '\n request made on ' + new Date())
+        res.end('Phone book has contact info for ' + personList.length + ' people'
+            + '\n' + new Date())
+    })
 })
+
 
 // Pyyntöön vastataan response-olion metodilla json, joka lähettää HTTP-pyynnön 
 // vastaukseksi parametrina olevaa Javascript-olioa eli taulukkoa persons vastaavan 
@@ -58,48 +58,33 @@ app.get('/api/persons', (request, response) => {
 
 // Näyttää yksittäisen henkilön, jos se löytyy, muussa tapauksessa 404 eli not found
 
-  app.get('/api/persons/:id', (request, response) => {
+app.get('/api/persons/:id', (request, response, next) => {
     Person.findById(request.params.id)
-      .then(person => {
-        response.json(person.toJSON())
-      })
-      .catch(error => {
-        console.log(error);
-        response.status(404).end()
-      })
-  })
-
-// app.get('/api/persons/:id', (request, response) => {
-//     const id = Number(request.params.id)
-//     const person = persons.find(person => person.id === id)
-
-//     if (person) {
-//         response.json(person)
-//     } else {
-//         response.status(404).end()
-//     }
-// })
-
+        .then(person => {
+            if (person) {
+                response.json(person.toJSON())
+            } else {
+                response.status(404).end()
+            }
+        })
+        .catch(error => next(error))
+})
 // poistaa tietyn, vastaa 204 no content
 
-app.delete('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    persons = persons.filter(person => person.id !== id)
-    response.status(204).end()
+app.delete('/api/persons/:id', (request, response, next) => {
+    Person.findByIdAndRemove(request.params.id)
+        .then(result => {
+            response.status(204).end()
+        })
+        .catch(error => next(error))
 })
-
-// const generateId = () => {
-//     let newId = Math.floor(Math.random() * 1000) + persons.length;
-//     return newId
-// }
 
 // body-parser ottaa pyynnön mukana olevan JSON-muotoisen datan, muuttaa sen 
 // js-olioksi ja sijoittaa request-olion kenttään body ennen kuin routen 
 // käsittelijää kutsutaan.
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
     const body = request.body
-
     if (!body.name) {
         return response.status(400).json({
             error: 'name missing'
@@ -110,30 +95,86 @@ app.post('/api/persons', (request, response) => {
             error: 'number missing'
         })
     }
-    if (persons.find(person => person.name === body.name)) {
-        return response.status(400).json({
-            error: 'name must be unique'
-        })
+    // const lista = Person.find( { name: body.name })
+    // console.log(lista)
+
+    Person.find({}).then(personList => {
+        //    console.log(personList)
+        const foundPerson = personList.find(p => p.name === body.name)
+
+        console.log('person-------', foundPerson)
+
+        if (!foundPerson) {
+            const person = new Person({
+                name: body.name,
+                number: body.number
+            })
+            person.save().then(savedPerson => {
+                response.json(savedPerson.toJSON())
+            })
+        } else {
+            const person = {
+                name: body.name,
+                number: body.number,
+            }
+            Person.findByIdAndUpdate(foundPerson.id, person, { new: true })
+                .then(updatedPerson => {
+                    response.json(updatedPerson.toJSON())
+                })
+                .catch(error => next(error))
+        }
+    })
+
+    // Person.find( { name: body.name }).then(result => {
+    //     console.log('-------------------------')
+    //     console.log('name', name)
+    //     console.log('löytyi sama')
+
+    //     console.log('Person.id', Person.id)
+    //     console.log('Person.name', Person.name)
+    //     console.log('body.name', body.name)
+    //     console.log('result', result)
+
+    //     Person.findByIdAndUpdate(request.params.id, person, { new: true })
+    //         .then(updatedPerson => {
+    //             response.json(updatedPerson.toJSON())
+    //         })
+    //         .catch(error => next(error))
+
+
+    // })
+
+})
+
+
+app.put('/api/persons/:id', (request, response, next) => {
+    const body = request.body
+
+    const person = {
+        name: body.name,
+        number: body.number,
     }
 
-    const person = new Person({
-        name: body.name,
-        number: body.number
-    })
-
-    // Pyyntöön vastataan response-olion metodilla json, joka lähettää HTTP-pyynnön 
-    // vastaukseksi uutta olioa vastaavan JSON-muotoisen merkkijonon.
-
-    person.save().then(savedPerson => {
-        response.json(savedPerson.toJSON())
-    })
-
+    Person.findByIdAndUpdate(request.params.id, person, { new: true })
+        .then(updatedPerson => {
+            response.json(updatedPerson.toJSON())
+        })
+        .catch(error => next(error))
 })
 
 const unknownEndpoint = (request, response) => {
     response.status(404).send({ error: 'unknown endpoint' })
 }
 
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message)
+    if (error.name === 'CastError' && error.kind == 'ObjectId') {
+        return response.status(400).send({ error: 'malformatted id' })
+    }
+    next(error)
+}
+
+app.use(errorHandler)
 app.use(unknownEndpoint)
 
 const PORT = process.env.PORT

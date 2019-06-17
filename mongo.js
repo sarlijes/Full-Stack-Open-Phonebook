@@ -1,13 +1,29 @@
-
 const mongoose = require('mongoose')
 
+const password = process.argv[2]
+
+const url =
+    `mongodb+srv://user123:${password}@cluster0-prolt.mongodb.net/phonebook?retryWrites=true&w=majority`
+
+mongoose.connect(url, { useNewUrlParser: true })
+
 const personSchema = new mongoose.Schema({
-    name: String,
-    number: String
+    name: {
+        type: String,
+        minlength: 3,
+        required: true
+    },
+    number: {
+        type: String,
+        minlength: 8,
+        required: true
+    }
 })
 
 const Person = mongoose.model('Person', personSchema)
 
+////////////////
+// CLI interface 
 
 if (process.argv.length < 3) {
     console.log('give password as argument')
@@ -31,31 +47,18 @@ if (process.argv.length < 3) {
     })
 }
 
-const password = process.argv[2]
-
-const url =
-    `mongodb+srv://user123:${password}@cluster0-prolt.mongodb.net/phonebook?retryWrites=true&w=majority`
-
-mongoose.connect(url, { useNewUrlParser: true })
-
-// Yhteyden avaamisen jälkeen määritellään muistiinpanon skeema ja sitä vastaava model:
-// Modelit ovat ns. konstruktorifunktioita, jotka luovat parametrien perusteella Javascript-olioita. 
-// Koska oliot on luotu modelien konstruktorifunktiolla, niillä on kaikki modelien ominaisuudet, eli 
-// joukko metodeja, joiden avulla olioita voidaan mm. tallettaa tietokantaan.
-
-
-const person1 = new Person({
-    name: 'Mingo Mungo 1',
-    number: '11 1112 5'
-})
-const person2 = new Person({
-    name: 'Twai Twai',
-    number: '22 2222 5'
-})
-const person3 = new Person({
-    name: 'Tregge Tresdottir',
-    number: '3333 333'
-})
+// const person1 = new Person({
+//     name: 'Mingo Mungo 1',
+//     number: '11 1112 5'
+// })
+// const person2 = new Person({
+//     name: 'Twai Twai',
+//     number: '22 2222 5'
+// })
+// const person3 = new Person({
+//     name: 'Tregge Tresdottir',
+//     number: '3333 333'
+// })
 
 // person1.save().then(response => {
 //     console.log('person saved!');
@@ -69,6 +72,3 @@ const person3 = new Person({
 //     console.log('person saved!');
 //     mongoose.connection.close();
 // })
-
-// Oliot haetaan kannasta Note-modelin metodilla find. Metodin parametrina on hakuehto. 
-// Koska hakuehtona on tyhjä olio {}, saimme kannasta kaikki notes-kokoelmaan talletetut oliot.

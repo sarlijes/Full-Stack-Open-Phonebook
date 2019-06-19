@@ -6,6 +6,7 @@ const app = express()
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const Person = require('./models/person')
+const createError = require('http-errors')
 
 app.use(express.static('build'))
 app.use(bodyParser.json())
@@ -13,6 +14,7 @@ app.use(morgan('tiny'))
 app.use(morgan(':method :url :reqBody :status :res[content-length] - :response-time ms'))
 morgan.token('reqBody', (req) => JSON.stringify(req.body))
 app.use(cors())
+
 
 let persons = []
 
@@ -69,51 +71,34 @@ app.delete('/api/persons/:id', (request, response, next) => {
 
 app.post('/api/persons', (request, response, next) => {
     const body = request.body
-    // if (!body.name) {
-    //     return response.status(400).json({
-    //         error: 'name missing'
-    //     })
-    // }
-    // if (!body.number) {
-    //     return response.status(400).json({
-    //         error: 'number missing'
-    //     })
-    // }
 
     Person.find({})
-    .then(personList => {
-        const foundPerson = personList.find(p => p.name === body.name)
-        // jos annetun nimistä henkilöä ei ole olemassa, luo uusi
-        if (!foundPerson) {
-            const person = new Person({
-                name: body.name,
-                number: body.number
-            })
-            person.save()
-                .then(savedPerson => {
-                    response.json(savedPerson.toJSON())
-                    console.log('onnistuneesti luotu uusi person', savedPerson)
+        .then(personList => {
+            const foundPerson = personList.find(p => p.name === body.name)
+            // jos annetun nimistä henkilöä ei ole olemassa, luo uusi
+            if (!foundPerson) {
+                const person = new Person({
+                    name: body.name,
+                    number: body.number
                 })
-                .catch(error => 
-                    // console.log(error.response.data))
-                    next(error))
-        }
-        // jos henkilö löytyi, päivitä numero 
-        else {
-            const person = {
-                name: body.name,
-                number: body.number,
+                person.save()
+                    .then(savedPerson => {
+                        response.json(savedPerson.toJSON())
+                        console.log('onnistuneesti luotu uusi person', savedPerson)
+                    })
+                    .catch(error => next(error))
             }
-            Person.findByIdAndUpdate(foundPerson.id, person, { new: true })
-                .then(updatedPerson => {
-                    response.json(updatedPerson.toJSON())
-                })
-                .catch(error => next(error))
-        }
-    })
-
+            // jos henkilö löytyi, tallennusoperaatio poikkeuksen ja välittää sen errorhandlerille:
+            else {
+                const person = new Person({ name: body.name, number: body.number, })
+                person.save()
+                    .then(savedPerson => {
+                        response.json(savedPerson.toJSON())
+                    })
+                    .catch(error => next(error))
+            }
+        })
 })
-
 
 app.put('/api/persons/:id', (request, response, next) => {
     const body = request.body
@@ -128,6 +113,7 @@ app.put('/api/persons/:id', (request, response, next) => {
             response.json(updatedPerson.toJSON())
         })
         .catch(error => next(error))
+        .catch(error => next(createError.BadRequest('person with name already exists')))
 })
 
 const unknownEndpoint = (request, response) => {
@@ -135,13 +121,14 @@ const unknownEndpoint = (request, response) => {
 }
 
 const errorHandler = (error, request, response, next) => {
-    console.log('------------------error-----------')
-    console.error(error.message)
-    console.log('------------------error-----------')
+    // console.log('------------------error-----------')
+    // console.error(error.message)
+    // console.log(error.errors.name.kind, "error.errors.name.kind")
+    // console.log('------------------error-----------')
     if (error.name === 'CastError' && error.kind == 'ObjectId') {
-        return response.status(400).send({ error: 'malformatted id' })
+        return response.status(400).send({ error: 'Error: Malformatted id' })
     } else if (error.name === 'ValidationError') {
-        return response.status(400).json({ error: error.message })
+        return response.status(400).json({ error: 'Error: Name must be unique' })
     }
     next(error)
 }

@@ -7,14 +7,12 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const Person = require('./models/person')
 const createError = require('http-errors')
-
 app.use(express.static('build'))
 app.use(bodyParser.json())
 app.use(morgan('tiny'))
 app.use(morgan(':method :url :reqBody :status :res[content-length] - :response-time ms'))
 morgan.token('reqBody', (req) => JSON.stringify(req.body))
 app.use(cors())
-
 
 let persons = []
 
